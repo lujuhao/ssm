@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:context="http://www.springframework.org/schema/context" xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context-4.1.xsd">
+        
+	<description>Spring整合Shiro配置文件</description>
+	      
+    <!-- 加载配置属性文件 -->
+	<context:property-placeholder location="classpath:application.properties" />
+
+	<!-- shiro核心-安全管理器securityManager -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="customRealm" />
+		<property name="cacheManager" ref="cacheManager" />
+		<property name="sessionManager" ref="sessionManager" />
+		<property name="rememberMeManager" ref="rememberMeManager" />
+	</bean>
+
+	<!-- 自定义Realm实现 -->
+    <bean id="customRealm" class="com.shiro.security.CustomRealm">
+    	<!-- 是否启用缓存 -->
+	    <property name="cachingEnabled" value="true"/>
+	    <!-- 是否启用身份验证缓存 -->
+	    <property name="authenticationCachingEnabled" value="true"/>
+	    <!-- 缓存AuthenticationInfo信息的缓存名称 -->
+	    <property name="authenticationCacheName" value="authenticationCache"/>
+	    <!-- 是否启用授权缓存，缓存AuthorizationInfo信息 -->
+	    <property name="authorizationCachingEnabled" value="true"/>
+	    <!-- 缓存AuthorizationInfo信息的缓存名称 -->
+	    <property name="authorizationCacheName" value="authorizationCache"/>
+	    
+        <!-- 配置密码匹配器 -->
+        <property name="credentialsMatcher">
+            <bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+                <!-- 加密算法为MD5 -->
+                <property name="hashAlgorithmName" value="MD5"></property>
+                <!-- 加密次数 -->
+                <property name="hashIterations" value="1024"></property>
+            </bean>
+        </property>
+    </bean>
+
+	<!-- 配置ehcache缓存 -->
+	<!-- 当用户登入之后访问特定的页面时就会去数据库查询该用户的角色权限，如果没有配置缓存的话，第二次访问又要向数据库发送查询，增加了数据库的压力，如果配置了缓存，就会把角色权限放到缓存之中，不需要多次去数据库查询 -->
+	<bean id="ehCacheManager" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+		<property name="configLocation" value="classpath:shiro-ehcache.xml" />
+		<property name="shared" value="true"></property>
+	</bean>
+	
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManager" ref="ehCacheManager" />
+	</bean>
+	
+	<!-- 配置session管理器 -->
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+        <!--  session的失效时长，单位毫秒 -->
+        <property name="globalSessionTimeout" value="${session.sessionTimeout}"/>
+        
+        <!-- 定时清理失效会话, 清理用户直接关闭浏览器造成的孤立会话   -->
+		<property name="sessionValidationInterval" value="${session.sessionTimeoutClean}"/>
+		
+        <!-- 删除失效的session -->
+        <property name="deleteInvalidSessions" value="true"/>
+        
+        <!-- 会话Cookie -->
+    	<property name="sessionIdCookie" ref="sessionIdCookie"/> 
+    </bean>
+	
+	<!-- 会话Cookie模板 -->
+	<bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+	    <constructor-arg value="sid"/>
+	   	<!-- 如果设置为true，则客户端不会暴露给服务端脚本代码，有助于减少某些类型的跨站脚本攻击 -->
+	    <property name="httpOnly" value="true"/>
+	    <property name="maxAge" value="-1"/><!-- maxAge=-1表示浏览器关闭时失效此Cookie -->
+	</bean>
+ 
+	<!-- rememberMeManager管理器，写cookie，取出cookie生成用户信息 -->
+	<bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+	 	<!-- cipherKey是加密rememberMe Cookie的密匙，默认AES算法 -->
+    	<property name="cipherKey" value="#{T(org.apache.shiro.codec.Base64).decode('4AvVhmFLUs0KTA3Kprsdag==')}"/>
+		<property name="cookie" ref="rememberMeCookie" />
+	</bean>
+	
+	<!-- cookie -->
+	<bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+		<constructor-arg value="rememberMe"/>
+		
+		<!-- 如果设置为true，则客户端不会暴露给服务端脚本代码，有助于减少某些类型的跨站脚本攻击 -->
+    	<property name="httpOnly" value="true"/>
+        
+        <!-- 记住我cookie生效时间30天 -->
+        <property name="maxAge" value="2592000" />
+	</bean>
+
+	<!-- Shiro生命周期处理器，将生命周期交于Spring管理 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+	<!-- shiro开启事务注解 -->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor">
+		<property name="proxyTargetClass" value="true" />
+	</bean>
+	
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager" />
+	</bean>
+
+	<!-- 自定义LogoutFilter,用户退出登录功能 -->
+	<bean id="logoutFilter" class="org.apache.shiro.web.filter.authc.LogoutFilter">
+		<property name="redirectUrl" value="/login" />
+	</bean>
+
+	<!-- 定义需要特殊处理的异常，用类名或完全路径名作为key，异常页名作为值 -->
+	<!--shiro权限异常处理 -->
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<!-- 未认证 -->
+				<prop key="org.apache.shiro.authz.UnauthenticatedException">/login</prop>
+				<!-- 未授权 -->
+				<prop key="org.apache.shiro.authz.UnauthorizedException">error/unauthorized</prop>
+			</props>
+		</property>  
+	</bean>
+
+	<!-- 配置shiroFilter，这里的shiroFilter要和web.xml配置的名字保持一致 -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<!-- Shiro的核心安全接口，这个属性是必须的 -->
+		<property name="securityManager" ref="securityManager" />
+		
+		<!-- 要求登录时的链接(登录页面地址)，非必须的属性，默认会自动寻找Web工程根目录下的"/login.jsp"页面 -->
+		<property name="loginUrl" value="/login" />
+		
+		<!-- 登录成功后要跳转的连接 -->
+		<property name="successUrl" value="index/index"></property>
+		
+		<!-- 用户访问未对其授权的资源时，所显示的连接 -->
+		<property name="unauthorizedUrl" value="error/unauthorized"></property>
+		
+		<!-- 过虑器链定义，从上向下顺序执行，一般将/**放在最下边 -->
+		<property name="filters">
+			<map>
+				<entry key="logout" value-ref="logoutFilter" />
+			</map>
+		</property>
+		
+		<property name="filterChainDefinitions">
+			<value>
+				<!-- anon:不需要认证 -->
+				<!-- authc:表单拦截器 -->
+				<!-- logout:退出拦截器-->
+				<!-- user:用户拦截器,通过remeberme认证的也能访问-->
+				/login= anon	<!-- 登录不进行拦截 -->
+				/login.jsp= anon <!-- 登录页面不进行拦截 -->
+				/createImgCode =anon <!-- 生成验证码不进行拦截 -->
+				/error/= anon <!-- 错误页面不进行拦截 -->
+				/logout = logout <!-- 默认注销功能，在前端页面添加<a href="logout">注销</a>即可实现注销登录 -->
+				/auth= anon <!-- 验证登录 -->
+				/static/** = anon <!-- 静态资源不拦截 -->
+				${user.headImg.path}=anon
+				/** = user
+			</value>
+		</property>
+	</bean>
+</beans>

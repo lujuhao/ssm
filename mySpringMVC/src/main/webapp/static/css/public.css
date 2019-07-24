@@ -1,0 +1,18 @@
+ /*查询头风格*/
+.search-from{	
+	width: 100%;
+	margin-top: 1.5%;
+}
+
+/*查询头按钮区风格*/
+.search-from-left{
+	width: 50%;
+	float: left;
+	padding-left: 0px;
+}
+
+.search-from-right{
+	width: 50%;
+	float: right;
+	padding-right: 0px;
+}

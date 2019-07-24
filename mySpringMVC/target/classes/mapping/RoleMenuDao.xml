@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.RoleMenuDao">
+  <resultMap id="BaseResultMap" type="com.entity.RoleMenu">
+    <result column="role_id" jdbcType="VARCHAR" property="roleId" />
+    <result column="menu_id" jdbcType="VARCHAR" property="menuId" />
+  </resultMap>
+  
+  <insert id="insert" parameterType="com.entity.RoleMenu">
+    insert into sys_role_menu (role_id,menu_id)
+    values (#{roleId}, #{menuId})
+  </insert>
+  
+  <!-- 根据角色id获取菜单 -->
+  <select id="getMenuListByRoleId" parameterType="java.lang.String" resultType="com.entity.Menu">
+  	SELECT 
+  		m.* 
+  	FROM 
+  		sys_menu m
+  	LEFT JOIN 
+  		sys_role_menu rm on rm.menu_id = m.id
+  	WHERE 
+  		rm.role_id = #{roleId}  
+  </select>
+  
+  <!-- 根据用户id获取菜单 -->
+  <select id="getMenuListByUserId" parameterType="java.lang.String" resultType="com.entity.Menu">
+  	SELECT 
+  		m.* 
+  	FROM 
+  		sys_menu m
+  	LEFT JOIN 
+  		sys_role_menu rm on rm.menu_id = m.id
+  	LEFT join  
+  		sys_user_role ur on ur.role_id = rm.role_id	
+  	WHERE 
+  		ur.user_id = #{userId}  
+  </select>
+  
+  <!-- 根据角色id删除角色权限 -->
+  <delete id="deleteByRoleId" parameterType="java.lang.String">
+  	DELETE FROM sys_role_menu WHERE role_id = #{roleId}
+  </delete>
+  
+</mapper>

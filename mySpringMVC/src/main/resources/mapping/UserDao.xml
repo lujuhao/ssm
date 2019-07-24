@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.UserDao">
+
+  <resultMap id="BaseResultMap" type="com.entity.User">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="login_name" jdbcType="VARCHAR" property="loginName" />
+    <result column="password" jdbcType="VARCHAR" property="password" />
+    <result column="phone" jdbcType="VARCHAR" property="phone" />
+    <result column="head_img" jdbcType="VARCHAR" property="headImg" />
+    <result column="email" jdbcType="VARCHAR" property="email" />
+  </resultMap>
+  
+  <sql id="Base_Column_List">
+    id, name, login_name, password, phone , head_img ,email
+  </sql>
+  
+  <select id="getUserById" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from sys_user
+    where id = #{id}
+  </select>
+  
+  <select id="getUserByName" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from sys_user
+    where login_name = #{loginName}
+  </select>
+  
+  <delete id="deleteByID" parameterType="java.lang.String">
+    delete from sys_user
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  
+  <delete id="deleteByIDList" parameterType="java.util.List">
+    delete from sys_user
+    where id in 
+    <foreach collection="idList" item="item" open="(" separator="," close=")" >
+     	#{item}
+	</foreach>
+  </delete>
+  
+  <insert id="insert" parameterType="com.entity.User">
+    insert into sys_user
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="name != null">
+        name,
+      </if>
+      <if test="loginName != null">
+        login_name,
+      </if>
+      <if test="password != null">
+        password,
+      </if>
+      <if test="phone != null and phone !=''">
+        phone,
+      </if>
+      <if test="headImg != null and headImg !=''">
+        head_img,
+      </if>
+      <if test="email != null">
+        email,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null">
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="loginName != null">
+        #{loginName,jdbcType=VARCHAR},
+      </if>
+      <if test="password != null">
+        #{password,jdbcType=VARCHAR},
+      </if>
+      <if test="phone != null and phone !=''">
+        #{phone,jdbcType=VARCHAR},
+      </if>
+      <if test="headImg != null and headImg !=''">
+        #{headImg,jdbcType=VARCHAR},
+      </if>
+      <if test="email != null">
+        #{email,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  
+  <update id="update" parameterType="com.entity.User">
+    update sys_user
+    <set>
+      <if test="name != null and name !=''">
+        name = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="loginName != null and loginName !=''">
+        login_name = #{loginName,jdbcType=VARCHAR},
+      </if>
+      <if test="password != null and password !=''">
+        password = #{password,jdbcType=VARCHAR},
+      </if>
+      <if test="phone != null and phone !=''">
+        phone = #{phone,jdbcType=VARCHAR},
+      </if>
+      <if test="headImg != null and headImg !=''">
+        head_img = #{headImg,jdbcType=VARCHAR},
+      </if>
+      <if test="email != null and email !=''">
+        email = #{email,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  
+   <select id="selectUserList" parameterType="com.entity.User" resultMap="BaseResultMap">
+	    SELECT 
+	    <include refid="Base_Column_List" />
+	    FROM sys_user
+	    WHERE 
+	    	1=1 
+	   	  <if test="name != null and name !='' ">
+	       	AND  name like concat('%',#{name},'%')
+	      </if>
+	      <if test="loginName != null and loginName !='' ">
+	       	AND  login_name like concat('%',#{loginName},'%')
+	      </if>
+	       <if test="phone != null and phone !='' ">
+	       	AND  phone like concat('%',#{phone},'%')
+	      </if>
+	      <if test="email != null and email !='' ">
+	       	AND  email like concat('%',#{email},'%')
+	      </if>
+	      
+	      <choose>
+				<when test="page.orderBy != null and page.orderBy !='' ">
+					ORDER BY ${page.orderBy}
+				</when>
+				
+				<otherwise>
+					ORDER BY name
+				</otherwise>
+		</choose>
+  </select>
+  
+  
+</mapper>
