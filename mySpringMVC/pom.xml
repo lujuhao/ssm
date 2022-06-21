@@ -15,7 +15,7 @@
   	 <jdk.version>1.8</jdk.version>
      <spring.version>4.1.9.RELEASE</spring.version>
      <aspectj.version>1.8.9</aspectj.version>
-     <mysql-connector>8.0.13</mysql-connector>
+     <mysql-connector>8.0.28</mysql-connector>
      <druid.version>1.0.18</druid.version>
      <mybatis.version>3.2.8</mybatis.version>
      <mybatis-spring.version>1.2.3</mybatis-spring.version>
